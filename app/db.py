@@ -22,36 +22,35 @@ class Database:
             url=db_url,
             auth_token=auth_token
         )
-        self.init_database()
     
-    def init_database(self):
+    async def init_database(self):
         """Initialize database and create tables if they don't exist"""
         try:
-            self.client.execute(CREATE_USERS_TABLE)
+            await self.client.execute(CREATE_USERS_TABLE)
             print("✅ Users table created or already exists in Turso")
         except Exception as e:
             print(f"❌ Error initializing Turso database: {e}")
             raise
     
-    def execute_query(self, query: str, params: tuple = None):
+    async def execute_query(self, query: str, params: tuple = None):
         """Execute a query and return results"""
         try:
             if params:
-                result = self.client.execute(query, list(params))
+                result = await self.client.execute(query, list(params))
             else:
-                result = self.client.execute(query)
+                result = await self.client.execute(query)
             return result.rows
         except Exception as e:
             print(f"Query error: {e}")
             raise
     
-    def execute_non_query(self, query: str, params: tuple = None):
+    async def execute_non_query(self, query: str, params: tuple = None):
         """Execute a query that doesn't return results (INSERT, UPDATE, DELETE)"""
         try:
             if params:
-                result = self.client.execute(query, list(params))
+                result = await self.client.execute(query, list(params))
             else:
-                result = self.client.execute(query)
+                result = await self.client.execute(query)
             return result.last_insert_rowid
         except Exception as e:
             print(f"Non-query error: {e}")

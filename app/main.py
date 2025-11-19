@@ -18,7 +18,7 @@ async def startup_event():
     try:
         print("🚀 Starting up User Management API...")
         print("📡 Connecting to database...")
-        # Database initialization is already done in db.py
+        await db.init_database()
         print("✅ Database connected and tables ready!")
         print("🎯 Ready to handle requests!")
     except Exception as e:
@@ -44,7 +44,7 @@ async def health_check():
     """Health check endpoint"""
     try:
         # Test database connection
-        db.execute_query("SELECT 1")
+        await db.execute_query("SELECT 1")
         return {
             "status": "healthy", 
             "database_connected": True,
@@ -74,7 +74,7 @@ async def get_users(limit: int = 10, offset: int = 0):
     """Get all users with pagination"""
     try:
         query = "SELECT id, name, email, phone FROM users LIMIT ? OFFSET ?"
-        results = db.execute_query(query, (limit, offset))
+        results = await db.execute_query(query, (limit, offset))
         
         users = []
         for row in results:
@@ -95,7 +95,7 @@ async def get_user(user_id: int):
     """Get a specific user by ID"""
     try:
         query = "SELECT id, name, email, phone FROM users WHERE id = ?"
-        results = db.execute_query(query, (user_id,))
+        results = await db.execute_query(query, (user_id,))
         
         if not results:
             raise HTTPException(status_code=404, detail="User not found")
@@ -117,12 +117,12 @@ async def create_user(user: UserCreate):
     """Create a new user"""
     try:
         # Check if email already exists
-        existing = db.execute_query("SELECT id FROM users WHERE email = ?", (user.email,))
+        existing = await db.execute_query("SELECT id FROM users WHERE email = ?", (user.email,))
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
         
         query = "INSERT INTO users (name, email, phone) VALUES (?, ?, ?)"
-        user_id = db.execute_non_query(query, (user.name, user.email, user.phone))
+        user_id = await db.execute_non_query(query, (user.name, user.email, user.phone))
         
         return {
             "id": user_id,
@@ -140,7 +140,7 @@ async def update_user(user_id: int, user_update: UserUpdate):
     """Update an existing user"""
     try:
         # Check if user exists
-        existing = db.execute_query("SELECT * FROM users WHERE id = ?", (user_id,))
+        existing = await db.execute_query("SELECT * FROM users WHERE id = ?", (user_id,))
         if not existing:
             raise HTTPException(status_code=404, detail="User not found")
         
@@ -154,7 +154,7 @@ async def update_user(user_id: int, user_update: UserUpdate):
         
         if user_update.email is not None:
             # Check if email is taken by another user
-            email_check = db.execute_query("SELECT id FROM users WHERE email = ? AND id != ?", (user_update.email, user_id))
+            email_check = await db.execute_query("SELECT id FROM users WHERE email = ? AND id != ?", (user_update.email, user_id))
             if email_check:
                 raise HTTPException(status_code=400, detail="Email already exists")
             
@@ -172,10 +172,10 @@ async def update_user(user_id: int, user_update: UserUpdate):
         params.append(user_id)
         
         query = f"UPDATE users SET {', '.join(update_fields)} WHERE id = ?"
-        db.execute_non_query(query, tuple(params))
+        await db.execute_non_query(query, tuple(params))
         
         # Return updated user
-        updated = db.execute_query("SELECT id, name, email, phone FROM users WHERE id = ?", (user_id,))[0]
+        updated = (await db.execute_query("SELECT id, name, email, phone FROM users WHERE id = ?", (user_id,)))[0]
         return {
             "id": updated[0],
             "name": updated[1],
@@ -192,12 +192,12 @@ async def delete_user(user_id: int):
     """Delete a user"""
     try:
         # Check if user exists
-        existing = db.execute_query("SELECT id FROM users WHERE id = ?", (user_id,))
+        existing = await db.execute_query("SELECT id FROM users WHERE id = ?", (user_id,))
         if not existing:
             raise HTTPException(status_code=404, detail="User not found")
         
         query = "DELETE FROM users WHERE id = ?"
-        db.execute_non_query(query, (user_id,))
+        await db.execute_non_query(query, (user_id,))
         
         return {"message": f"User with ID {user_id} deleted successfully"}
     except HTTPException:
@@ -215,7 +215,7 @@ async def search_users(query: str):
         LIMIT 20
         """
         search_term = f"%{query}%"
-        results = db.execute_query(search_query, (search_term, search_term))
+        results = await db.execute_query(search_query, (search_term, search_term))
         
         users = []
         for row in results:
