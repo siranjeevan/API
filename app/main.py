@@ -73,16 +73,16 @@ async def get_config():
 async def get_users(limit: int = 10, offset: int = 0):
     """Get all users with pagination"""
     try:
-        query = "SELECT * FROM users LIMIT ? OFFSET ?"
+        query = "SELECT id, name, email, phone FROM users LIMIT ? OFFSET ?"
         results = db.execute_query(query, (limit, offset))
         
         users = []
         for row in results:
             user_dict = {
-                "id": row["id"],
-                "name": row["name"],
-                "email": row["email"],
-                "phone": row["phone"]
+                "id": row[0],
+                "name": row[1],
+                "email": row[2],
+                "phone": row[3]
             }
             users.append(user_dict)
         
@@ -94,7 +94,7 @@ async def get_users(limit: int = 10, offset: int = 0):
 async def get_user(user_id: int):
     """Get a specific user by ID"""
     try:
-        query = "SELECT * FROM users WHERE id = ?"
+        query = "SELECT id, name, email, phone FROM users WHERE id = ?"
         results = db.execute_query(query, (user_id,))
         
         if not results:
@@ -102,10 +102,10 @@ async def get_user(user_id: int):
         
         row = results[0]
         return {
-            "id": row["id"],
-            "name": row["name"],
-            "email": row["email"],
-            "phone": row["phone"]
+            "id": row[0],
+            "name": row[1],
+            "email": row[2],
+            "phone": row[3]
         }
     except HTTPException:
         raise
@@ -175,12 +175,12 @@ async def update_user(user_id: int, user_update: UserUpdate):
         db.execute_non_query(query, tuple(params))
         
         # Return updated user
-        updated = db.execute_query("SELECT * FROM users WHERE id = ?", (user_id,))[0]
+        updated = db.execute_query("SELECT id, name, email, phone FROM users WHERE id = ?", (user_id,))[0]
         return {
-            "id": updated["id"],
-            "name": updated["name"],
-            "email": updated["email"],
-            "phone": updated["phone"]
+            "id": updated[0],
+            "name": updated[1],
+            "email": updated[2],
+            "phone": updated[3]
         }
     except HTTPException:
         raise
@@ -210,7 +210,7 @@ async def search_users(query: str):
     """Search users by name or email"""
     try:
         search_query = """
-        SELECT * FROM users 
+        SELECT id, name, email, phone FROM users 
         WHERE name LIKE ? OR email LIKE ?
         LIMIT 20
         """
@@ -220,10 +220,10 @@ async def search_users(query: str):
         users = []
         for row in results:
             user_dict = {
-                "id": row["id"],
-                "name": row["name"],
-                "email": row["email"],
-                "phone": row["phone"]
+                "id": row[0],
+                "name": row[1],
+                "email": row[2],
+                "phone": row[3]
             }
             users.append(user_dict)
         

@@ -1,6 +1,5 @@
 # Database configuration and connection
-import sqlite3
-from contextlib import contextmanager
+import libsql_client
 from app.config import settings
 
 # Database schema
@@ -16,74 +15,50 @@ CREATE TABLE IF NOT EXISTS users (
 """
 
 class Database:
-    """Database connection manager"""
+    """Turso Database connection manager"""
     
-    def __init__(self, db_url: str):
-        self.db_url = db_url
+    def __init__(self, db_url: str, auth_token: str):
+        self.client = libsql_client.create_client(
+            url=db_url,
+            auth_token=auth_token
+        )
         self.init_database()
     
     def init_database(self):
         """Initialize database and create tables if they don't exist"""
         try:
-            # For Turso libsql connection, we would use:
-            # conn = sqlite3.connect(self.db_url)
-            # But since libsql-python is not available, we'll use a local SQLite file
-            # This will be replaced with Turso connection when available
-            
-            # Use local SQLite for now (can be replaced with Turso libsql)
-            local_db_path = "app.db"  # Local SQLite file
-            
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(CREATE_USERS_TABLE)
-                conn.commit()
-                print("✅ Users table created or already exists")
-                
+            self.client.execute(CREATE_USERS_TABLE)
+            print("✅ Users table created or already exists in Turso")
         except Exception as e:
-            print(f"❌ Error initializing database: {e}")
+            print(f"❌ Error initializing Turso database: {e}")
             raise
-    
-    @contextmanager
-    def get_connection(self):
-        """Get database connection with automatic cleanup"""
-        try:
-            # For now, use local SQLite
-            # When libsql-python is available, replace with:
-            # conn = sqlite3.connect(self.db_url)
-            conn = sqlite3.connect("app.db")
-            conn.row_factory = sqlite3.Row  # Enable column access by name
-            yield conn
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            raise e
-        finally:
-            if conn:
-                conn.close()
     
     def execute_query(self, query: str, params: tuple = None):
         """Execute a query and return results"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
+        try:
             if params:
-                cursor.execute(query, params)
+                result = self.client.execute(query, list(params))
             else:
-                cursor.execute(query)
-            return cursor.fetchall()
+                result = self.client.execute(query)
+            return result.rows
+        except Exception as e:
+            print(f"Query error: {e}")
+            raise
     
     def execute_non_query(self, query: str, params: tuple = None):
         """Execute a query that doesn't return results (INSERT, UPDATE, DELETE)"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
+        try:
             if params:
-                cursor.execute(query, params)
+                result = self.client.execute(query, list(params))
             else:
-                cursor.execute(query)
-            conn.commit()
-            return cursor.lastrowid
+                result = self.client.execute(query)
+            return result.last_insert_rowid
+        except Exception as e:
+            print(f"Non-query error: {e}")
+            raise
 
 # Create database instance
-db = Database(settings.TURSO_DATABASE_URL)
+db = Database(settings.TURSO_DATABASE_URL, settings.TURSO_AUTH_TOKEN)
 
 def get_db():
     """Dependency to get database connection"""
