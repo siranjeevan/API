@@ -14,7 +14,7 @@ class Settings:
     
     # Server Configuration
     PORT: int = int(os.getenv("PORT", "8000"))
-    HOST: str = os.getenv("HOST", "localhost")
+    HOST: str = os.getenv("HOST", "0.0.0.0")
     
     # Development mode
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
